@@ -6,6 +6,13 @@ struct Galaxy {
     location: (usize, usize),
 }
 
+#[derive(Debug)]
+struct Distance {
+    from: String,
+    to: String,
+    distance: usize,
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     println!("Reading file {}", args[1]);
@@ -63,19 +70,84 @@ fn main() {
     println!("--- expansion ---");
 
     // expand space
-    for row in expand_rows {
-        let new_row = space[row].clone();
-        space.insert(row, new_row)
+    for (i, row) in expand_rows.iter().enumerate() {
+        let new_row = space[*row + i].clone();
+        space.insert(*row + i, new_row)
     }
 
     for row in space.iter_mut() {
-        for col in expand_columns.iter() {
-            row.insert(*col, ".".to_string());
+        for (j, col) in expand_columns.iter().enumerate() {
+            row.insert(*col + j, ".".to_string());
+        }
+    }
+
+    for galaxy in galaxies.iter_mut() {
+        for (j, col) in expand_columns.iter().enumerate() {
+            if galaxy.location.0 > *col {
+                galaxy.location.0 += j;
+            }
+        }
+
+        for row in expand_rows.iter() {
+            if galaxy.location.1 > *row {
+                galaxy.location.1 += 1;
+            }
+        }
+    }
+
+    // reconstruct space
+    let mut new_space = vec![vec!["".to_string(); space[0].len() + 1]; space.len() + 1];
+    for row in 0..space.len() {
+        for col in 0..space[0].len() {
+            match galaxies.iter().find(|g| g.location.0 == col && g.location.1 == row) {
+                Some(g) => {
+                    new_space[row][col] = g.name.clone();
+                }
+                None => {
+                    new_space[row][col] = ".".to_string();
+                }
+            }
         }
     }
 
     print_galaxies(&galaxies);
     print_space(&space);
+    println!("--- new space ---");
+    print_space(&new_space);
+
+    unimplemented!();
+
+    println!("--- distances ---");
+
+    let mut distances: Vec<Distance> = Vec::new();
+    for g1 in galaxies.iter() {
+        for g2 in galaxies.iter() {
+            if g2.name == g1.name {
+                continue;
+            }
+            if distances
+                .iter()
+                .find(|d| d.from == g2.name && d.to == g1.name)
+                .is_none()
+            {
+                distances.push(Distance {
+                    from: g1.name.clone(),
+                    to: g2.name.clone(),
+                    distance: g1.location.0.abs_diff(g2.location.0)
+                        + g1.location.1.abs_diff(g2.location.1),
+                })
+            }
+        }
+    }
+
+    for d in distances.iter() {
+        print!("{} -> {} = {} \n", d.from, d.to, d.distance);
+    }
+
+    let sum = distances.iter().fold(0, |acc, d| acc + d.distance);
+    println!("--- sum ---");
+    println!("pairs: {}", distances.len());
+    println!("sum: {}", sum);
 }
 
 fn read_lines<P>(filename: P) -> Result<Lines<BufReader<File>>>

@@ -72,7 +72,7 @@ impl Dimension {
         }
     }
 
-    fn get_distances(&self)-> Vec<Distance> {
+    fn get_distances(&self) -> Vec<Distance> {
         let mut distances: Vec<Distance> = Vec::new();
         for g1 in self.galaxies.iter() {
             for g2 in self.galaxies.iter() {
@@ -116,6 +116,7 @@ fn main() {
     println!("Reading file {}", args[1]);
 
     let input_dimension = parse_space(read_lines(&args[1]).unwrap());
+    let correct_dimension = parse_space(read_lines(&args[2]).unwrap());
 
     println!("--- initial ---");
     input_dimension.print();
@@ -126,18 +127,13 @@ fn main() {
     new_dimension.expand();
     new_dimension.print();
 
+    println!("--- comparison ---");
+    compare_dimensions(&correct_dimension, &new_dimension);
+
     println!("--- distances ---");
 
     let distances = new_dimension.get_distances();
-
-    for d in distances.iter() {
-        print!("{} -> {} = {} \n", d.from, d.to, d.distance);
-    }
-
-    let sum = distances.iter().fold(0, |acc, d| acc + d.distance);
-    println!("--- sum ---");
-    println!("pairs: {}", distances.len());
-    println!("sum: {}", sum);
+    print_distances(distances);
 }
 
 fn read_lines<P>(filename: P) -> Result<Lines<BufReader<File>>>
@@ -197,4 +193,52 @@ fn parse_space(lines: Lines<BufReader<File>>) -> Dimension {
         expand_rows,
         expand_columns,
     };
+}
+
+fn compare_dimensions(a: &Dimension, b: &Dimension) {
+    for i in 0..a.galaxies.len() {
+        let g1 = &a.galaxies[i];
+        let g2 = &b.galaxies[i];
+        if g1.location != g2.location {
+            println!(
+                "Galaxy {} ({},{}) != ({},{})",
+                g1.name, g1.location.0, g1.location.1, g2.location.0, g2.location.1
+            );
+        }
+    }
+
+    let mut same = true;
+    let mut compare_space = a.space.clone();
+
+    for i in 0..a.space.len() {
+        for j in 0..a.space[i].len() {
+            let w1 = &a.space[i][j];
+            let w2 = &b.space[i][j];
+            if w1 != w2 {
+                same = false;
+                compare_space[i][j] = "X".to_string();
+            }
+        }
+    }
+
+    if !same {
+        println!("--- compare space ---");
+        for line in compare_space.iter() {
+            for word in line {
+                print!("{}", word);
+            }
+            print!("\n");
+        }
+    }
+}
+
+fn print_distances(distances: Vec<Distance>) {
+    for d in distances.iter() {
+        print!("{} -> {} = {} \n", d.from, d.to, d.distance);
+    }
+
+    let sum = distances.iter().fold(0, |acc, d| acc + d.distance);
+    println!("--- sum ---");
+    println!("pairs: {}", distances.len());
+    println!("sum: {}", sum);
 }

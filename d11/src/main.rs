@@ -20,6 +20,7 @@ impl Dimension {
     }
 
     fn print_galaxies(&self) {
+        println!("galaxies: {}", self.galaxies.len());
         for galaxy in self.galaxies.iter() {
             println!(
                 "Galaxy {} ({},{})",
@@ -39,58 +40,60 @@ impl Dimension {
         self.print_expand();
     }
 
-    fn expand(&mut self) {
+    fn expand(&mut self, times: usize) {
         self.expand_space();
-        self.expand_galaxies();
+        self.expand_galaxies(times);
     }
 
     fn expand_space(&mut self) {
         for (i, row) in self.expand_rows.iter().enumerate() {
-            let new_row = self.space[*row + i].clone();
+            let new_row = self.space[*row + i]
+                .clone()
+                .iter()
+                .map(|_| "?".to_string())
+                .collect();
+
             self.space.insert(*row + i, new_row)
         }
 
         for row in self.space.iter_mut() {
             for (j, col) in self.expand_columns.iter().enumerate() {
-                row.insert(*col + j, ".".to_string());
+                row.insert(*col + j, "?".to_string());
             }
         }
     }
 
-    fn expand_galaxies(&mut self) {
+    fn expand_galaxies(&mut self, times: usize) {
         for galaxy in self.galaxies.iter_mut() {
-            for (j, col) in self.expand_columns.iter().enumerate() {
+            let mut col_to_add = 0;
+            for col in self.expand_columns.iter() {
                 if galaxy.location.0 > *col {
-                    galaxy.location.0 += 1;
+                    col_to_add += 1;
                 }
             }
-            for (i, row) in self.expand_rows.iter().enumerate() {
+
+            let mut row_to_add = 0;
+            for row in self.expand_rows.iter() {
                 if galaxy.location.1 > *row {
-                    galaxy.location.1 += 1;
+                    row_to_add += 1;
                 }
             }
+
+            galaxy.location.0 += col_to_add * (times - 1);
+            galaxy.location.1 += row_to_add * (times - 1);
         }
     }
 
-    fn get_distances(&self) -> Vec<Distance> {
-        let mut distances: Vec<Distance> = Vec::new();
+    fn get_distances(&self) -> Vec<usize> {
+        let mut distances: Vec<usize> = Vec::new();
         for g1 in self.galaxies.iter() {
             for g2 in self.galaxies.iter() {
-                if g2.name == g1.name {
+                if g2.name == g1.name || g1.name > g2.name {
                     continue;
                 }
-                if distances
-                    .iter()
-                    .find(|d| d.from == g2.name && d.to == g1.name)
-                    .is_none()
-                {
-                    distances.push(Distance {
-                        from: g1.name.clone(),
-                        to: g2.name.clone(),
-                        distance: g1.location.0.abs_diff(g2.location.0)
-                            + g1.location.1.abs_diff(g2.location.1),
-                    })
-                }
+                distances.push(
+                    g1.location.0.abs_diff(g2.location.0) + g1.location.1.abs_diff(g2.location.1),
+                )
             }
         }
 
@@ -114,23 +117,15 @@ struct Distance {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     println!("Reading file {}", args[1]);
+    println!("Expanding {} times", args[2]);
 
     let input_dimension = parse_space(read_lines(&args[1]).unwrap());
-    let correct_dimension = parse_space(read_lines(&args[2]).unwrap());
+    let times = args[2].parse::<usize>().unwrap();
 
-    println!("--- initial ---");
-    input_dimension.print();
-
-    println!("--- expansion ---");
+    println!("Found {} galaxies", input_dimension.galaxies.len());
 
     let mut new_dimension = input_dimension.clone();
-    new_dimension.expand();
-    new_dimension.print();
-
-    println!("--- comparison ---");
-    compare_dimensions(&correct_dimension, &new_dimension);
-
-    println!("--- distances ---");
+    new_dimension.expand_galaxies(times);
 
     let distances = new_dimension.get_distances();
     print_distances(distances);
@@ -196,15 +191,23 @@ fn parse_space(lines: Lines<BufReader<File>>) -> Dimension {
 }
 
 fn compare_dimensions(a: &Dimension, b: &Dimension) {
+    println!("--- comparison ---");
+
+    let mut same_galaxies = true;
     for i in 0..a.galaxies.len() {
         let g1 = &a.galaxies[i];
         let g2 = &b.galaxies[i];
         if g1.location != g2.location {
+            same_galaxies = false;
             println!(
                 "Galaxy {} ({},{}) != ({},{})",
                 g1.name, g1.location.0, g1.location.1, g2.location.0, g2.location.1
             );
         }
+    }
+
+    if same_galaxies {
+        println!("Galaxies are the same");
     }
 
     let mut same = true;
@@ -232,13 +235,12 @@ fn compare_dimensions(a: &Dimension, b: &Dimension) {
     }
 }
 
-fn print_distances(distances: Vec<Distance>) {
-    for d in distances.iter() {
-        print!("{} -> {} = {} \n", d.from, d.to, d.distance);
-    }
+fn print_distances(distances: Vec<usize>) {
+    // for d in distances.iter() {
+    //     print!("{} -> {} = {} \n", d.from, d.to, d.distance);
+    // }
 
-    let sum = distances.iter().fold(0, |acc, d| acc + d.distance);
-    println!("--- sum ---");
-    println!("pairs: {}", distances.len());
-    println!("sum: {}", sum);
+    let sum = distances.iter().fold(0, |acc, d| acc + d);
+    println!("Pairs of galaxies checked: {}", distances.len());
+    println!("Sum of distance between galaxies: {}", sum);
 }

@@ -13,12 +13,10 @@ fn main() {
 
         for char in line.chars() {
             if char.is_digit(10) {
-                if char.is_digit(10) {
-                    if first == None {
-                        first = Some(char);
-                    } else {
-                        last = Some(char);
-                    }
+                if first == None {
+                    first = Some(char);
+                } else {
+                    last = Some(char);
                 }
             }
         }

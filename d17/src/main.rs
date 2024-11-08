@@ -54,6 +54,7 @@ let mut moves = 0;
             if is_out_of_bounds(&goal, &next_position)
                 || is_backwards(direction, &same_direction)
                 || is_over_straight_line_limit(&position, &new_position, &same_direction)
+                || !grid[new_position.0 as usize][new_position.1 as usize].render.is_numeric()
             {
                 continue;
             }

@@ -35,19 +35,19 @@ fn main() {
                 Some(i) => Some(targets[i]),
                 None => None,
             };
-            'ass: {
+            'match_target: {
                 match target {
                     Some(ref t) => {
                         if t.index != here {
                             // no hit, keep looking
-                            break 'ass;
+                            break 'match_target;
                         }
 
                         if word[t.word_index] as char != char {
                             println!("wrong char");
                             // not the correct char, move on
                             // target = targets.pop();
-                            break 'ass;
+                            break 'match_target;
                         }
 
                         println!("Found match {:?}", t);
@@ -57,7 +57,7 @@ fn main() {
                             // hit last char, increase count
                             count += 1;
                             // target = targets.pop();
-                            break 'ass;
+                            break 'match_target;
                         }
 
                         let mut next_word_index = t.word_index + 1;
